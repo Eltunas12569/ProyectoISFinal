@@ -1,0 +1,15 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_SUPABASE_URL=https://xkoawizeqoelbffewzrv.supabase.co
+      - REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhrb2F3aXplcW9lbGJmZmV3enJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1MjQ5OTcsImV4cCI6MjA1OTEwMDk5N30.OfLYrMrnKiW2MeLTWxvKUzP8_0jb_jpv6Ak3AaYv8yw
+    volumes:
+      - .:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
