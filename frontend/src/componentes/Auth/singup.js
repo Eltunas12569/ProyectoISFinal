@@ -1,12 +1,131 @@
-import { useState } from 'react';
+import { useState, createContext, useContext, useEffect } from 'react';
 import { supabase } from '../../configuracion/supabase';
 
-export default function SignUp() {
+// 1. Crear el contexto del tema
+const ThemeContext = createContext();
+
+// 2. Proveedor del tema que envolverá la aplicación
+function ThemeProvider({ children }) {
+  const [darkMode, setDarkMode] = useState(() => {
+    // Intentar obtener la preferencia guardada en localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved === 'true' ? true : false;
+    }
+    return false;
+  });
+
+  // Efecto para aplicar el tema al cargar y cuando cambia
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+    
+    // Crear elemento style para las variables CSS
+    const styleElement = document.createElement('style');
+    styleElement.id = 'theme-variables';
+    styleElement.textContent = `
+      :root {
+        --bg-color: ${darkMode ? '#121212' : '#ffffff'};
+        --text-color: ${darkMode ? '#f0f0f0' : '#333333'};
+        --input-bg: ${darkMode ? '#1e1e1e' : '#ffffff'};
+        --input-border: ${darkMode ? '#444' : '#ddd'};
+        --primary-btn: ${darkMode ? '#6a11cb' : '#007bff'};
+        --error-bg: ${darkMode ? '#d32f2f' : '#ff4444'};
+        --success-bg: ${darkMode ? '#388e3c' : '#00C851'};
+      }
+      
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+    `;
+    
+    // Eliminar el estilo anterior si existe
+    const existingStyle = document.getElementById('theme-variables');
+    if (existingStyle) {
+      document.head.removeChild(existingStyle);
+    }
+    
+    document.head.appendChild(styleElement);
+    
+    // Guardar preferencia
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+  return (
+    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+// 3. Hook personalizado para usar el tema
+function useTheme() {
+  return useContext(ThemeContext);
+}
+
+// 4. Componente SignUp modificado
+function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const { darkMode, toggleDarkMode } = useTheme();
+
+  // Estilos dinámicos usando variables CSS
+  const styles = {
+    formContainer: {
+      maxWidth: '400px',
+      margin: '0 auto',
+      padding: '20px',
+      borderRadius: '8px',
+      backgroundColor: 'var(--bg-color)',
+      color: 'var(--text-color)'
+    },
+    input: {
+      padding: '10px',
+      fontSize: '16px',
+      borderRadius: '4px',
+      border: '1px solid var(--input-border)',
+      backgroundColor: 'var(--input-bg)',
+      color: 'var(--text-color)'
+    },
+    button: {
+      padding: '12px',
+      backgroundColor: 'var(--primary-btn)',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: '16px',
+      cursor: 'pointer'
+    },
+    error: {
+      backgroundColor: 'var(--error-bg)',
+      color: 'white'
+    },
+    success: {
+      backgroundColor: 'var(--success-bg)',
+      color: 'white'
+    },
+    themeToggle: {
+      padding: '8px 12px',
+      backgroundColor: darkMode ? 'var(--text-color)' : '#333',
+      color: darkMode ? 'var(--bg-color)' : '#f0f0f0',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      marginLeft: '10px'
+    }
+  };
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -15,13 +134,12 @@ export default function SignUp() {
     setSuccess(false);
 
     try {
-      // 1. Registrar usuario en Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            username: email // Usamos el email como username
+            username: email
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
@@ -29,7 +147,6 @@ export default function SignUp() {
 
       if (authError) throw authError;
 
-      // 2. Crear perfil manualmente como respaldo
       if (data?.user?.id) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -39,13 +156,10 @@ export default function SignUp() {
             created_at: new Date().toISOString(),
             role: 'user'
           }, {
-            onConflict: 'id' // Si ya existe, actualiza
+            onConflict: 'id'
           });
 
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          // No lanzamos error para no interrumpir el flujo
-        }
+        if (profileError) console.error('Error creating profile:', profileError);
       }
 
       setSuccess(true);
@@ -57,26 +171,22 @@ export default function SignUp() {
     }
   };
 
-  // Función para verificar perfil (opcional)
-  const checkProfileExists = async (userId) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .single();
-
-    if (error) console.error('Error checking profile:', error);
-    return !!data;
-  };
-
   return (
-    <div style={{ maxWidth: '400px', margin: '0 auto', padding: '20px' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Registrarse</h2>
+    <div style={styles.formContainer}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Registrarse</h2>
+        <button 
+          onClick={toggleDarkMode}
+          style={styles.themeToggle}
+          aria-label={darkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+        >
+          {darkMode ? '☀️ Light' : '🌙 Dark'}
+        </button>
+      </div>
       
       {error && (
         <p style={{ 
-          color: 'white', 
-          backgroundColor: '#ff4444',
+          ...styles.error,
           padding: '10px',
           borderRadius: '5px',
           marginBottom: '15px'
@@ -87,8 +197,7 @@ export default function SignUp() {
       
       {success && (
         <p style={{ 
-          color: 'white', 
-          backgroundColor: '#00C851',
+          ...styles.success,
           padding: '10px',
           borderRadius: '5px',
           marginBottom: '15px'
@@ -104,12 +213,7 @@ export default function SignUp() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            borderRadius: '4px',
-            border: '1px solid #ddd'
-          }}
+          style={styles.input}
         />
         <input
           type="password"
@@ -118,23 +222,14 @@ export default function SignUp() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            borderRadius: '4px',
-            border: '1px solid #ddd'
-          }}
+          style={styles.input}
         />
         <button 
           type="submit" 
           disabled={loading}
           style={{
-            padding: '12px',
-            backgroundColor: loading ? '#6c757d' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
+            ...styles.button,
+            backgroundColor: loading ? '#6c757d' : 'var(--primary-btn)',
             cursor: loading ? 'not-allowed' : 'pointer'
           }}
         >
@@ -142,5 +237,14 @@ export default function SignUp() {
         </button>
       </form>
     </div>
+  );
+}
+
+// 5. Componente App que envuelve todo
+export default function App() {
+  return (
+    <ThemeProvider>
+      <SignUp />
+    </ThemeProvider>
   );
 }

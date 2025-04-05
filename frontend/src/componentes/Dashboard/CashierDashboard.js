@@ -8,7 +8,13 @@ export default function CashierDashboard() {
   const [error, setError] = useState(null);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
+  const [theme, setTheme] = useState('light'); // Estado para el tema
   const navigate = useNavigate();
+
+  // Función para alternar entre temas
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -37,7 +43,7 @@ export default function CashierDashboard() {
           .select('id, name, price, stock')
           .gt('stock', 0)
           .order('stock', { ascending: false })
-          .limit(5); // Limitar a 5 productos
+          .limit(5);
 
         if (productsError) throw productsError;
 
@@ -140,7 +146,7 @@ export default function CashierDashboard() {
         .select('id, name, price, stock')
         .gt('stock', 0)
         .order('name', { ascending: true })
-        .limit(5); // Volver a limitar a 5 productos al actualizar
+        .limit(5);
       
       setProducts(productsData);
       alert('Venta procesada con éxito!');
@@ -156,15 +162,21 @@ export default function CashierDashboard() {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      height: '100vh'
+      height: '100vh',
+      color: theme === 'light' ? 'black' : 'white',
+      backgroundColor: theme === 'light' ? 'white' : '#121212'
     }}>Cargando panel de cajero...</div>;
   }
 
   return (
-    <div>
+    <div style={{ 
+      color: theme === 'light' ? 'black' : 'white',
+      backgroundColor: theme === 'light' ? 'white' : '#121212',
+      minHeight: '100vh'
+    }}>
       {/* Barra superior */}
       <div style={{
-        background: '#333',
+        background: theme === 'light' ? '#333' : '#222',
         color: 'white',
         padding: '10px 20px',
         display: 'flex',
@@ -172,23 +184,43 @@ export default function CashierDashboard() {
         alignItems: 'center'
       }}>
         <h1>Panel de Cajero</h1>
-        <button 
-          onClick={handleLogout}
-          style={{
-            background: '#f44336',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Cerrar Sesión
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={toggleTheme}
+            style={{
+              background: '#555',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {theme === 'light' ? '🌙 Modo Oscuro' : '☀️ Modo Claro'}
+          </button>
+          <button 
+            onClick={handleLogout}
+            style={{
+              background: '#f44336',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </div>
 
       {/* Contenido principal */}
-      <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ 
+        padding: '20px', 
+        maxWidth: '1000px', 
+        margin: '0 auto',
+        color: theme === 'light' ? 'black' : 'white'
+      }}>
         {error && (
           <div style={{
             padding: '10px',
@@ -216,7 +248,7 @@ export default function CashierDashboard() {
         {/* Información del usuario */}
         {user && (
           <div style={{
-            background: 'white',
+            background: theme === 'light' ? 'white' : '#1e1e1e',
             padding: '20px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -225,7 +257,7 @@ export default function CashierDashboard() {
             <h2 style={{ marginBottom: '15px' }}>Información del Cajero</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
               <div>
-                <h3 style={{ marginBottom: '5px', color: '#666' }}>Rol</h3>
+                <h3 style={{ marginBottom: '5px', color: theme === 'light' ? '#666' : '#aaa' }}>Rol</h3>
                 <p style={{
                   display: 'inline-block',
                   padding: '4px 8px',
@@ -238,16 +270,16 @@ export default function CashierDashboard() {
                 </p>
               </div>
               <div>
-                <h3 style={{ marginBottom: '5px', color: '#666' }}>Correo</h3>
+                <h3 style={{ marginBottom: '5px', color: theme === 'light' ? '#666' : '#aaa' }}>Correo</h3>
                 <p style={{ fontSize: '18px' }}>{user.email}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Sección de productos (mostrará máximo 5) */}
+        {/* Sección de productos */}
         <div style={{
-          background: 'white',
+          background: theme === 'light' ? 'white' : '#1e1e1e',
           padding: '20px',
           borderRadius: '8px',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
@@ -265,8 +297,8 @@ export default function CashierDashboard() {
                 key={product.id}
                 style={{
                   padding: '15px',
-                  background: '#f5f5f5',
-                  border: '1px solid #ddd',
+                  background: theme === 'light' ? '#f5f5f5' : '#2d2d2d',
+                  border: `1px solid ${theme === 'light' ? '#ddd' : '#444'}`,
                   borderRadius: '8px'
                 }}
               >
@@ -294,15 +326,15 @@ export default function CashierDashboard() {
 
           {/* Carrito de compras */}
           <div style={{
-            background: '#f9f9f9',
+            background: theme === 'light' ? '#f9f9f9' : '#2d2d2d',
             padding: '20px',
             borderRadius: '8px',
-            border: '1px solid #eee'
+            border: `1px solid ${theme === 'light' ? '#eee' : '#444'}`
           }}>
             <h3 style={{ marginBottom: '15px' }}>Carrito de Compras</h3>
             
             {cart.length === 0 ? (
-              <p style={{ color: '#666' }}>No hay productos en el carrito</p>
+              <p style={{ color: theme === 'light' ? '#666' : '#aaa' }}>No hay productos en el carrito</p>
             ) : (
               <>
                 <div style={{ marginBottom: '15px' }}>
@@ -314,12 +346,12 @@ export default function CashierDashboard() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '10px',
-                        borderBottom: '1px solid #eee'
+                        borderBottom: `1px solid ${theme === 'light' ? '#eee' : '#444'}`
                       }}
                     >
                       <div>
                         <p style={{ margin: 0 }}>{item.name}</p>
-                        <small style={{ color: '#666' }}>
+                        <small style={{ color: theme === 'light' ? '#666' : '#aaa' }}>
                           ${item.price.toFixed(2)} × {item.quantity} = ${(item.price * item.quantity).toFixed(2)}
                         </small>
                       </div>

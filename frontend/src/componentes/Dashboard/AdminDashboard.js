@@ -7,7 +7,13 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [theme, setTheme] = useState('light'); // Estado para el tema
   const navigate = useNavigate();
+
+  // Función para alternar entre temas
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     const checkAdminAndFetch = async () => {
@@ -60,7 +66,7 @@ export default function AdminDashboard() {
         id: profile.id,
         email: profile.username || 'No disponible',
         created_at: profile.created_at,
-        last_sign_in_at: 'Información no disponible', // No accesible desde frontend
+        last_sign_in_at: 'Información no disponible',
         role: profile.role || 'cashier',
         username: profile.username
       }));
@@ -79,13 +85,11 @@ export default function AdminDashboard() {
   const updateUserRole = async (userId, newRole) => {
     setError(null);
     try {
-      // Verificar nuevamente que es admin
       if (currentUserRole !== 'admin') {
         throw new Error('Permisos insuficientes');
       }
 
-      // Actualizar con RLS (debe estar configurada para permitir a admins)
-      const { data, error } = await supabase
+      const {  error } = await supabase
         .from('profiles')
         .update({ role: newRole })
         .eq('id', userId)
@@ -93,7 +97,6 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Actualizar estado local
       setUsers(users.map(user =>
         user.id === userId ? { ...user, role: newRole } : user
       ));
@@ -109,7 +112,9 @@ export default function AdminDashboard() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        height: '100vh'
+        height: '100vh',
+        color: theme === 'light' ? 'black' : 'white',
+        backgroundColor: theme === 'light' ? 'white' : '#121212'
       }}>
         <p>Cargando panel de administración...</p>
       </div>
@@ -117,9 +122,14 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div>
+    <div style={{ 
+      color: theme === 'light' ? 'black' : 'white',
+      backgroundColor: theme === 'light' ? 'white' : '#121212',
+      minHeight: '100vh'
+    }}>
+      {/* Encabezado con botones */}
       <div style={{
-        background: '#333',
+        background: theme === 'light' ? '#333' : '#222',
         color: 'white',
         padding: '10px 20px',
         display: 'flex',
@@ -127,21 +137,37 @@ export default function AdminDashboard() {
         alignItems: 'center'
       }}>
         <h1>Panel de Administración</h1>
-        <button 
-          onClick={handleLogout}
-          style={{
-            background: '#f44336',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Cerrar Sesión
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={toggleTheme}
+            style={{
+              background: '#555',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {theme === 'light' ? '🌙 Modo Oscuro' : '☀️ Modo Claro'}
+          </button>
+          <button 
+            onClick={handleLogout}
+            style={{
+              background: '#f44336',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </div>
 
+      {/* Botones principales */}
       <div style={{
         display: 'flex',
         justifyContent: 'center',
@@ -179,7 +205,13 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
+      {/* Contenido principal */}
+      <div style={{ 
+        padding: '20px', 
+        maxWidth: '1000px', 
+        margin: '0 auto',
+        color: theme === 'light' ? 'black' : 'white'
+      }}>
         {error && (
           <div style={{
             padding: '10px',
@@ -208,7 +240,7 @@ export default function AdminDashboard() {
         )}
 
         <div style={{
-          background: 'white',
+          background: theme === 'light' ? 'white' : '#1e1e1e',
           padding: '20px',
           borderRadius: '8px',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
@@ -216,9 +248,13 @@ export default function AdminDashboard() {
           <h2 style={{ marginBottom: '20px' }}>Gestión de Usuarios ({users.length})</h2>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse',
+              color: theme === 'light' ? 'black' : 'white'
+            }}>
               <thead>
-                <tr style={{ background: '#f5f5f5' }}>
+                <tr style={{ background: theme === 'light' ? '#f5f5f5' : '#2d2d2d' }}>
                   <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Email/Usuario</th>
                   <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Fecha Registro</th>
                   <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Rol Actual</th>
@@ -227,7 +263,12 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {users.map(user => (
-                  <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={user.id} style={{ 
+                    borderBottom: '1px solid #eee',
+                    '&:hover': {
+                      backgroundColor: theme === 'light' ? '#f9f9f9' : '#333'
+                    }
+                  }}>
                     <td style={{ padding: '12px' }}>{user.email}</td>
                     <td style={{ padding: '12px' }}>
                       {new Date(user.created_at).toLocaleDateString()}
