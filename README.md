@@ -1,99 +1,80 @@
-¡Claro! Aquí tienes el README completo listo para copiar y pegar en un solo bloque de texto:
 
----
-
-```markdown
-# 🧾 Sistema de Gestión de Ventas (POS) con Docker
+# 🧾 Sistema de Gestión de Ventas (POS) en Docker
 
 ## 📦 Tecnologías principales
 
-- 🐳 Docker + Docker Compose  
-- 🧑‍💻 React (Frontend)  
-- ⚙️ Supabase (Backend)  
-- 🔐 Autenticación con verificación por correo  
-
----
+- 🐳 Docker + Docker Compose
+- 🧑‍💻 React (Frontend)
+- ⚙️ Supabase (Backend & Database)
+- 🔐 Autenticación con verificación por correo
 
 ## 📋 Requisitos previos
 
-Asegúrate de tener instalado:
+Para poder ejecutar el proyecto sera necesario tener instaladas las siguinetes herramientas:
 
 - [Docker 20.10+](https://docs.docker.com/get-docker/)
 - [Docker Compose 2.0+](https://docs.docker.com/compose/install/)
 - Una cuenta de correo electrónico válida (para verificar usuarios)
 
----
+> [!NOTE]
+> Tener en cuenta que no es necesario contar con una versión de nodejs local, ya que esta se instalara en el contenedor de docker.
 
 ## 🚀 Primeros pasos
 
 ### 1. Clona el repositorio
-
-
-### 2. Levanta la aplicación
-
-```bash
-docker-compose up --build 
+Clona el repositorio empleando el siguiente comando desde el directorio en el cual se guardara:
+``` bash
+git clone https://github.com/Eltunas12569/ProyectoISFinal.git
 ```
 
-### 3. Accede a los servicios
+### 2. Levanta la aplicación
+Una vez clonado el repo, dirigete al directorio `frontend`:
+```bash
+cd frontend/
+````
 
-- 🖥 **Frontend**: http://localhost:3000  
-- 🛠 **Supabase Studio**: http://localhost:54323  
-  - **Usuario**: `admin@example.com`  (coloca un correo al que tengas accese)
-  - **Contraseña**: `password` (¡debes cambiarla!)
-
----
+Una vez dentro del directorio, ejecuta el siguiente comando:
+```bash
+docker-compose up --build
+```
+> [!IMPORTANT]
+> Si ya empleas el puerto 3000 de tu computadora sera necesario que cambies el puerto al que se redirigira el tráfico del contenedor en el archivo `docker-compose.yaml`.
+> ``` docker
+>    ports:
+>      - "4000:3000"		# Ejemplo de redireccionamiento al puerto 4000 local
+> ```
+> Toma en cuenta que esto afectara al momento de acceder al sistema.
 
 ## 🔐 Registro y verificación de usuario
+### 🚦 Accede a los servicios
+Para acceder al sistema deberas ingresar a tu localhost desde un navegador seguido del puerto que se establecio en el archivo `docker-compose.yaml`.
 
-### ✉️ Registro
-- Usa un correo real.
-- Completa todos los campos obligatorios.
+> [!NOTE]
+> Si no conoces el puerto expuesto puedes ejecutar `docker ps` en la terminal, el comando te proporcionara la información sobre tu contenedor.
 
-### ✅ Verificación
-1. Revisa tu bandeja de entrada o spam.
-2. Haz clic en el enlace recibido.
+Una vez ingreses a tu localhost desde un navegador, deberas registrarte con tu propio correo.
 
-### 👤 Roles predeterminados
-- Los nuevos usuarios se registran como **Cajero**.
-- Solo los **Administradores** pueden asignar o cambiar roles.
+- 🖥 **Frontend**: http://localhost:3000
+  - **Usuario**: `admin@example.com`  (coloca un correo real al que tengas acceso)
+  - **Contraseña**: `password` (coloca una contraseña a elección propia)
 
----
+Posterior a tu registro, se te enviara un correo de confirmación para que el usuario se establesca en supabase y puedas ingresar al sistema.
 
 ## 🧑‍💼 Roles de usuario
 
 | Rol           | Permisos                                                         |
 |---------------|------------------------------------------------------------------|
-| **Administrador** | Gestión de usuarios, productos, reportes y ventas completas. |
-| **Cajero**         | Registro de ventas y consulta de productos.                 |
+| **Administrador** | - Gestión de usuarios<br>- Gestión de productos<br>- Gestión de reportes<br>- Gestión de ventas completas |
+| **Cajero**         | - Registro de ventas<br>- Consulta de productos             |
 
----
-
-## 🎛 Comandos útiles
 
 ## 🎛 Comandos útiles
 
 | Comando                         | Descripción                              |
 |--------------------------------|------------------------------------------|
-| `docker-compose up `         | Inicia los servicios en segundo plano.  |
+| `docker-compose up `           | Inicia los servicios en segundo plano.  |
 | `docker-compose down`          | Detiene y elimina los contenedores.     |
 | `docker-compose build`         | Construye las imágenes sin iniciar.     |
-
-
----
-
-## 🌗 Tema claro / oscuro
-
-El sistema incluye un botón en la barra superior derecha para alternar entre temas.  
-La preferencia se guarda durante la sesión del usuario.
-
----
-
-## 📁 Estructura del proyecto
-
-```
-├── frontend/           # Aplicación React (cliente)
-├── backend/            # Servicios de Supabase / API
-├── docker-compose.yml  # Configuración de servicios
-└── README.md           # Este archivo
-```
+| `docker-compose start`				 | Inicia los contenedores								 |
+| `docker-compose stop`					 | Detiene los contenedores								 |
+| `docker ps`										 | Brinda información de los contenedores	 |
