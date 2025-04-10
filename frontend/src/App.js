@@ -5,6 +5,7 @@ import AdminDashboard from './componentes/Dashboard/AdminDashboard';
 import CashierDashboard from './componentes/Dashboard/CashierDashboard';
 import ProtectedRoute from './componentes/Auth/protectetroute';
 import Unauthorized from './componentes/Unauthorized';
+import Prueba from './componentes/Prueba'; // Importa el componente Prueba
 import './App.css';
 
 function App() {
@@ -28,6 +29,9 @@ function App() {
             <CashierDashboard />
           </ProtectedRoute>
         } />
+
+        {/* Nueva ruta para el componente Prueba */}
+        <Route path="/prueba" element={<Prueba />} />
       </Routes>
     </Router>
   );
