@@ -6,6 +6,7 @@ import CashierDashboard from './componentes/Dashboard/CashierDashboard';
 import ProtectedRoute from './componentes/Auth/protectetroute';
 import Unauthorized from './componentes/Unauthorized';
 import Prueba from './componentes/Prueba'; // Importa el componente Prueba
+import PanelVentas from './componentes/Dashboard/PanelVentas';
 import './App.css';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/panelVentas" element={<PanelVentas />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         
         <Route path="/AdminDashboard" element={

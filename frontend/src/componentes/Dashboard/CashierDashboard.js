@@ -186,6 +186,19 @@ export default function CashierDashboard() {
         <h1>Panel de Cajero</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
+            onClick={() => navigate('/PanelVentas')} // Botón Ventas
+            style={{
+              background: '#007BFF',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Ventas
+          </button>
+          <button 
             onClick={toggleTheme}
             style={{
               background: '#555',
