@@ -8,7 +8,10 @@ export default function CashierDashboard() {
   const [error, setError] = useState(null);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
-  const [theme, setTheme] = useState('light'); // Estado para el tema
+  const [theme, setTheme] = useState('light');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [ticket, setTicket] = useState(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
   const navigate = useNavigate();
 
   // Función para alternar entre temas
@@ -36,8 +39,17 @@ export default function CashierDashboard() {
         if (profileError) throw profileError;
 
         setUser({ ...authUser, ...profile });
+        await fetchProducts();
+      } catch (err) {
+        setError(err.message);
+        console.error('Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        // Obtener solo 5 productos con stock disponible
+    const fetchProducts = async () => {
+      try {
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('id, name, price, stock')
@@ -50,9 +62,6 @@ export default function CashierDashboard() {
         setProducts(productsData);
       } catch (err) {
         setError(err.message);
-        console.error('Error:', err);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -116,45 +125,126 @@ export default function CashierDashboard() {
       return;
     }
 
+    setIsProcessing(true);
+    
     try {
-      const updates = cart.map(item => 
-        supabase
-          .from('products')
-          .update({ stock: item.stock - item.quantity })
-          .eq('id', item.id)
+      // Verificar stock primero
+      const stockCheck = await Promise.all(
+        cart.map(item => 
+          supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.id)
+            .single()
+        )
+      );
+      
+      const stockErrors = stockCheck
+        .map(({ data }, index) => ({ 
+          item: cart[index], 
+          available: data.stock 
+        }))
+        .filter(({ item, available }) => available < item.quantity);
+      
+      if (stockErrors.length > 0) {
+        throw new Error(
+          stockErrors.map(err => 
+            `${err.item.name}: Disponible ${err.available}, Solicitado ${err.item.quantity}`
+          ).join('\n')
+        );
+      }
+      
+      // Crear ticket
+      const { data: newTicket, error: ticketError } = await supabase
+        .from('tickets')
+        .insert([{
+          seller_id: user.id,
+          total_amount: calculateTotal()
+        }])
+        .select();
+      
+      if (ticketError) throw ticketError;
+
+      // Insertar items del ticket
+      const { error: itemsError } = await supabase
+        .from('ticket_items')
+        .insert(
+          cart.map(item => ({
+            ticket_id: newTicket[0].id,
+            product_id: item.id,
+            product_name: item.name,
+            quantity: item.quantity,
+            unit_price: item.price
+          }))
+        );
+      
+      if (itemsError) throw itemsError;
+
+      // Actualizar stock
+      await Promise.all(
+        cart.map(item => 
+          supabase
+            .from('products')
+            .update({ stock: item.stock - item.quantity })
+            .eq('id', item.id)
+        )
       );
 
-      await Promise.all(updates);
-
-      const { error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          user_id: user.id,
-          total: calculateTotal(),
-          items: cart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price: item.price
-          }))
-        });
-
-      if (saleError) throw saleError;
-
+      // Obtener ticket completo para mostrar
+      const { data: completeTicket } = await supabase
+        .from('tickets')
+        .select(`
+          id,
+          sale_date,
+          total_amount,
+          seller_id,
+          profiles:profiles (
+            username,
+            full_name
+          ),
+          ticket_items (
+            product_name,
+            quantity,
+            unit_price
+          )
+        `)
+        .eq('id', newTicket[0].id)
+        .single();
+      
+      // Calcular subtotal para el ticket mostrado
+      const ticketWithSubtotal = {
+        ...completeTicket,
+        ticket_items: completeTicket.ticket_items.map(item => ({
+          ...item,
+          subtotal: item.unit_price * item.quantity
+        }))
+      };
+      
+      setTicket(ticketWithSubtotal);
       setCart([]);
+      setShowTicketModal(true);
+
+      // Actualizar lista de productos
       const { data: productsData } = await supabase
         .from('products')
         .select('id, name, price, stock')
         .gt('stock', 0)
-        .order('name', { ascending: true })
+        .order('stock', { ascending: false })
         .limit(5);
       
       setProducts(productsData);
-      alert('Venta procesada con éxito!');
-
+      
     } catch (err) {
       setError(`Error al procesar la venta: ${err.message}`);
       console.error('Error procesando venta:', err);
+    } finally {
+      setIsProcessing(false);
     }
+  };
+
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString('es-ES', options);
   };
 
   if (loading) {
@@ -186,7 +276,7 @@ export default function CashierDashboard() {
         <h1>Panel de Cajero</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
-            onClick={() => navigate('/PanelVentas')} // Botón Ventas
+            onClick={() => navigate('/PanelVentas')}
             style={{
               background: '#007BFF',
               color: 'white',
@@ -397,16 +487,17 @@ export default function CashierDashboard() {
                   <h4 style={{ margin: 0 }}>Total: ${calculateTotal().toFixed(2)}</h4>
                   <button 
                     onClick={processSale}
+                    disabled={isProcessing}
                     style={{
                       padding: '10px 20px',
-                      background: '#4CAF50',
+                      background: isProcessing ? '#cccccc' : '#4CAF50',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
-                      cursor: 'pointer'
+                      cursor: isProcessing ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    Procesar Venta
+                    {isProcessing ? 'Procesando...' : 'Procesar Venta'}
                   </button>
                 </div>
               </>
@@ -414,6 +505,88 @@ export default function CashierDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal de ticket */}
+      {showTicketModal && ticket && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: theme === 'light' ? 'white' : '#2d2d2d',
+            padding: '20px',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <h2 style={{ marginBottom: '15px', textAlign: 'center' }}>Ticket de Venta</h2>
+            <div style={{ marginBottom: '15px' }}>
+              <p style={{ margin: '5px 0' }}><strong>Número:</strong> #{ticket.id.slice(0, 8)}</p>
+              <p style={{ margin: '5px 0' }}><strong>Fecha:</strong> {formatDate(ticket.sale_date)}</p>
+              <p style={{ margin: '5px 0' }}><strong>Cajero:</strong> {ticket.profiles?.full_name || ticket.profiles?.username || 'Desconocido'}</p>
+            </div>
+            
+            <div style={{ 
+              borderTop: '1px dashed #ccc',
+              borderBottom: '1px dashed #ccc',
+              padding: '15px 0',
+              margin: '15px 0'
+            }}>
+              {ticket.ticket_items.map((item, index) => (
+                <div key={index} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '10px'
+                }}>
+                  <div>
+                    <p style={{ margin: 0 }}>{item.product_name}</p>
+                    <small style={{ color: theme === 'light' ? '#666' : '#aaa' }}>
+                      {item.quantity} × ${item.unit_price.toFixed(2)}
+                    </small>
+                  </div>
+                  <p style={{ margin: 0 }}>${item.subtotal.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontWeight: 'bold',
+              fontSize: '1.1em',
+              marginBottom: '20px'
+            }}>
+              <span>Total:</span>
+              <span>${ticket.total_amount.toFixed(2)}</span>
+            </div>
+            
+            <button
+              onClick={() => setShowTicketModal(false)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: '#007BFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

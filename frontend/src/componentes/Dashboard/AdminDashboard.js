@@ -7,7 +7,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentUserRole, setCurrentUserRole] = useState(null);
-  const [theme, setTheme] = useState('light'); // Estado para el tema
+  const [theme, setTheme] = useState('light');
+  const [updatingRoles, setUpdatingRoles] = useState({});
   const navigate = useNavigate();
 
   // Función para alternar entre temas
@@ -19,26 +20,33 @@ export default function AdminDashboard() {
     const checkAdminAndFetch = async () => {
       setLoading(true);
       try {
-        // Verificar rol del usuario actual
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('No autenticado');
+        // Verificar usuario autenticado
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          throw new Error(authError?.message || 'No autenticado');
+        }
 
+        // Obtener perfil del usuario actual
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
 
-        if (profileError || !profile) throw new Error('Perfil no encontrado');
+        if (profileError || !profile) {
+          throw new Error(profileError?.message || 'Perfil no encontrado');
+        }
         
         setCurrentUserRole(profile.role);
         
+        // Redirigir si no es admin
         if (profile.role !== 'admin') {
           navigate('/unauthorized');
           return;
         }
 
-        // Si es admin, cargar los usuarios
+        // Cargar usuarios si es admin
         await fetchAllUsers();
       } catch (err) {
         setError(err.message);
@@ -53,7 +61,6 @@ export default function AdminDashboard() {
 
   const fetchAllUsers = async () => {
     try {
-      // Obtener solo los perfiles (RLS debe permitir a admins ver todos)
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, username, role, created_at')
@@ -61,19 +68,18 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      // Mapear a formato de usuario
       const usersData = profiles.map(profile => ({
         id: profile.id,
         email: profile.username || 'No disponible',
         created_at: profile.created_at,
-        last_sign_in_at: 'Información no disponible',
         role: profile.role || 'cashier',
         username: profile.username
       }));
 
       setUsers(usersData);
     } catch (err) {
-      throw err;
+      setError(`Error al cargar usuarios: ${err.message}`);
+      console.error('Error fetching users:', err);
     }
   };
 
@@ -82,27 +88,74 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
-  const updateUserRole = async (userId, newRole) => {
-    setError(null);
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('¿Estás seguro de que deseas despedir a este usuario? Esta acción no se puede deshacer.')) {
+      return;
+    }
+  
     try {
       if (currentUserRole !== 'admin') {
-        throw new Error('Permisos insuficientes');
+        throw new Error('No tienes permisos para realizar esta acción');
       }
+  
+      // Eliminar el perfil de la tabla 'profiles'
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+  
+      if (error) {
+        throw error;
+      }
+  
+      // Actualizar la lista de usuarios
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+    } catch (err) {
+      setError(`Error al despedir usuario: ${err.message}`);
+      console.error('Error al despedir usuario:', err);
+    }
+  };
+  
 
-      const {  error } = await supabase
+  const updateUserRole = async (userId, newRole) => {
+    setError(null);
+    setUpdatingRoles(prev => ({ ...prev, [userId]: true }));
+    
+    try {
+      if (currentUserRole !== 'admin') {
+        throw new Error('No tienes permisos para realizar esta acción');
+      }
+  
+      const { data: updatedUser, error } = await supabase
         .from('profiles')
         .update({ role: newRole })
         .eq('id', userId)
-        .select();
-
-      if (error) throw error;
-
-      setUsers(users.map(user =>
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
+        .select()
+        .maybeSingle(); // Usa maybeSingle en lugar de single
+  
+      if (error) {
+        if (error.code === '42501') {
+          throw new Error('No tienes permisos para modificar roles');
+        }
+        throw error;
+      }
+  
+      if (!updatedUser) {
+        throw new Error('El usuario no existe o no se pudo actualizar');
+      }
+  
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId ? { ...user, role: updatedUser.role } : user
+        )
+      );
+      
     } catch (err) {
-      setError(err.message);
-      console.error('Error actualizando rol:', err);
+      setError(`Error al actualizar: ${err.message}`);
+      console.error("Error detallado:", err);
+      await fetchAllUsers();
+    } finally {
+      setUpdatingRoles(prev => ({ ...prev, [userId]: false }));
     }
   };
 
@@ -136,6 +189,19 @@ export default function AdminDashboard() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
+        <button 
+  onClick={() => navigate(-1)} // Redirige a la página anterior
+  style={{
+    background: '#007BFF',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  }}
+>
+  Regresar
+</button>
         <h1>Panel de Administración</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button 
@@ -176,33 +242,44 @@ export default function AdminDashboard() {
         padding: '20px'
       }}>
         <button 
-          onClick={() => alert('Redirigiendo a Gestión de Almacén')}
-          style={{
-            background: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            padding: '15px 30px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          Gestión de Almacén
-        </button>
-        <button 
-          onClick={() => alert('Redirigiendo a Gestión de Empleados')}
-          style={{
-            background: '#2196F3',
-            color: 'white',
-            border: 'none',
-            padding: '15px 30px',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          Gestión de Empleados
-        </button>
+  onClick={() => navigate('/almacen')} // Redirige a la página de Almacén
+  style={{
+    background: '#28a745',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  }}
+>
+  Gestión de Almacén
+</button>
+<button 
+  onClick={() => navigate('/PanelVentas')} // Redirige a la página anterior
+  style={{
+    background: '#007BFF',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  }}
+>
+  Venta
+</button>
+<button 
+  onClick={() => navigate('/Historial')} // Redirige a la página anterior
+  style={{
+    background: '#007BFF',
+    color: 'white',
+    border: 'none',
+    padding: '8px 16px',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  }}
+>
+  historial de ventas
+</button>
       </div>
 
       {/* Contenido principal */}
@@ -263,12 +340,7 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {users.map(user => (
-                  <tr key={user.id} style={{ 
-                    borderBottom: '1px solid #eee',
-                    '&:hover': {
-                      backgroundColor: theme === 'light' ? '#f9f9f9' : '#333'
-                    }
-                  }}>
+                  <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
                     <td style={{ padding: '12px' }}>{user.email}</td>
                     <td style={{ padding: '12px' }}>
                       {new Date(user.created_at).toLocaleDateString()}
@@ -285,37 +357,56 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => updateUserRole(user.id, 'admin')}
-                          disabled={user.role === 'admin' || currentUserRole !== 'admin'}
-                          style={{
-                            padding: '6px 12px',
-                            background: user.role === 'admin' ? '#cccccc' : '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: user.role === 'admin' || currentUserRole !== 'admin' ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          Hacer Admin
-                        </button>
-                        <button
-                          onClick={() => updateUserRole(user.id, 'cashier')}
-                          disabled={user.role === 'cashier' || currentUserRole !== 'admin'}
-                          style={{
-                            padding: '6px 12px',
-                            background: user.role === 'cashier' ? '#cccccc' : '#2196F3',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: user.role === 'cashier' || currentUserRole !== 'admin' ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          Hacer Cajero
-                        </button>
-                      </div>
-                    </td>
+  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+    <button
+      onClick={() => updateUserRole(user.id, 'admin')}
+      disabled={user.role === 'admin' || currentUserRole !== 'admin' || updatingRoles[user.id]}
+      style={{
+        padding: '6px 12px',
+        background: user.role === 'admin' ? '#cccccc' : '#4CAF50',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: user.role === 'admin' || currentUserRole !== 'admin' ? 'not-allowed' : 'pointer',
+        opacity: updatingRoles[user.id] ? 0.7 : 1
+      }}
+    >
+      {updatingRoles[user.id] ? 'Procesando...' : 'Hacer Admin'}
+    </button>
+
+    <button
+      onClick={() => updateUserRole(user.id, 'cashier')}
+      disabled={user.role === 'cashier' || currentUserRole !== 'admin' || updatingRoles[user.id]}
+      style={{
+        padding: '6px 12px',
+        background: user.role === 'cashier' ? '#cccccc' : '#2196F3',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: user.role === 'cashier' || currentUserRole !== 'admin' ? 'not-allowed' : 'pointer',
+        opacity: updatingRoles[user.id] ? 0.7 : 1
+      }}
+    >
+      {updatingRoles[user.id] ? 'Procesando...' : 'Hacer Cajero'}
+    </button>
+
+    <button
+      onClick={() => handleDeleteUser(user.id)}
+      disabled={currentUserRole !== 'admin'}
+      style={{
+        padding: '6px 12px',
+        background: '#f44336',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: currentUserRole !== 'admin' ? 'not-allowed' : 'pointer',
+      }}
+    >
+      Despedir
+    </button>
+  </div>
+</td>
+
                   </tr>
                 ))}
               </tbody>

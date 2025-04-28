@@ -17,7 +17,7 @@
   --bg-primary: #ffffff;
   --bg-secondary: #f3f4f6;
   --bg-dark: #111827;
-  --main-bg: #aaefef; /* Nuevo: fondo principal claro */
+  --main-bg: #e4f1f1; /* Nuevo: fondo principal claro */
   --top-bar-bg: #222727; /* Nuevo: fondo barra superior */
   
   /* Bordes */
@@ -224,4 +224,66 @@
     background-color: rgba(239, 68, 68, 0.1);
     border-left-color: var(--danger);
   }
+}
+.ticketContainer {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px; /* Ajusta según necesites */
+  margin: 0 auto;
+}
+/* Contenedor del historial de tickets */
+.ticketsListContainer {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
+}
+
+/* Estilos para cada item del ticket en el historial */
+.ticketListItem {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 4px solid #4CAF50;
+}
+
+.ticketListItem:hover {
+  background-color: #f0f0f0;
+  transform: translateX(2px);
+}
+
+.ticketListHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.ticketListTotal {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+  font-weight: bold;
+  color: #333;
+}
+
+.ticketListProduct {
+  display: flex;
+  justify-content: space-between;
+  margin: 4px 0;
+  font-size: 0.9em;
+}
+
+.ticketListMore {
+  font-size: 0.8em;
+  color: #666;
+  text-align: right;
+  margin-top: 5px;
 }

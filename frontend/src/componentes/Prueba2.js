@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../../configuracion/supabase';
-import styles from './csss/Pruebas.module.css';
-import { useNavigate } from 'react-router-dom'; // Importa useNavigate
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../configuracion/supabase';
+import styles from './Dashboard/csss/Pruebas.module.css';
 
 export default function Prueba() {
-  const navigate = useNavigate(); // Inicializa navigate
-
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [error, setError] = useState(null);
@@ -264,51 +261,27 @@ export default function Prueba() {
   return (
     <div className={styles.container} data-theme={theme}>
       <div className={styles.topBar}>
-  <div className={styles.header}>
-    <div>
-      <h1 className={styles.title}>Panel de Ventas</h1>
-      <p className={styles.text}>Busque productos por nombre</p>
-    </div>
-    <div className={styles.headerButtons}>
-      {/* Botón Regresar */}
-      <button 
-        onClick={() => navigate(-1)} // Navega a la página anterior
-        style={{
-          background: '#007BFF',
-          color: 'white',
-          border: 'none',
-          padding: '8px 16px',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          marginRight: '10px' // Espaciado entre botones
-        }}
-      >
-        Regresar
-      </button>
-      {/* Botón Historial */}
-  <button 
-    onClick={fetchTickets} // Llama a la función fetchTickets
-    style={{
-      background: '#FFC107', // Amarillo
-      color: 'black',
-      border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      marginRight: '10px' // Espaciado entre botones
-    }}
-  >
-    {showTickets ? 'Ocultar Historial' : 'Ver Historial'}
-  </button>
-      <button 
-        onClick={toggleTheme}
-        className={styles.themeToggle}
-      >
-        {theme === 'light' ? '🌙 Modo Oscuro' : '☀️ Modo Claro'}
-      </button>
-    </div>
-  </div>
-</div>
+        <div className={styles.header}>
+          <div>
+            <h1 className={styles.title}>Panel de Ventas</h1>
+            <p className={styles.text}>Busque productos por nombre</p>
+          </div>
+          <div className={styles.headerButtons}>
+            <button 
+              onClick={fetchTickets}
+              className={styles.ticketsButton}
+            >
+              {showTickets ? '📋 Ocultar Historial' : '📋 Ver Historial'}
+            </button>
+            <button 
+              onClick={toggleTheme}
+              className={styles.themeToggle}
+            >
+              {theme === 'light' ? '🌙 Modo Oscuro' : '☀️ Modo Claro'}
+            </button>
+          </div>
+        </div>
+      </div>
       
       <div className={styles.mainContent}>
         {/* Contenedor del carrito */}
@@ -396,79 +369,62 @@ export default function Prueba() {
 
         {/* Contenedor de tickets (historial) */}
         {showTickets && (
-  <div 
-    className={styles.ticketsContainer}
-    style={{
-      background: 'white', // Fondo blanco
-      color: 'black', // Texto negro
-      padding: '20px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)' // Sombra para destacar
-    }}
-  >
-    <div className={styles.ticketsHeader} onClick={toggleTickets}>
-      <h2>
-        📋 Historial de Ventas
-        <span className={styles.ticketsToggleIcon}>
-          {showTickets ? '▲' : '▼'}
-        </span>
-      </h2>
-    </div>
-    
-    <div className={styles.ticketsContent}>
-      {ticketsList.length === 0 ? (
-        <p className={styles.emptyTickets}>No hay tickets registrados</p>
-      ) : (
-        <div className={styles.ticketsListContainer}>
-          {ticketsList.map(ticket => (
-            <div 
-              key={ticket.id} 
-              className={styles.ticketListItem}
-              style={{
-                background: '#f9f9f9', // Fondo claro para cada ticket
-                color: 'black', // Texto negro
-                border: '1px solid #ddd',
-                padding: '16px',
-                borderRadius: '8px',
-                marginBottom: '10px'
-              }}
-              onClick={() => {
-                setTicket(ticket);
-                setShowTicketModal(true);
-              }}
-            >
-              <div className={styles.ticketListHeader}>
-                <span>Ticket #{ticket.id.slice(0, 8)}</span>
-                <span>{formatDate(ticket.sale_date)}</span>
-              </div>
-              <div className={styles.ticketListSeller}>
-                <span>Vendedor:</span>
-                <span>{ticket.profiles?.full_name || ticket.profiles?.username || 'Desconocido'}</span>
-              </div>
-              <div className={styles.ticketListTotal}>
-                <span>Total:</span>
-                <span>${ticket.total_amount.toFixed(2)}</span>
-              </div>
-              <div className={styles.ticketListItems}>
-                {ticket.ticket_items.slice(0, 2).map((item, index) => (
-                  <div key={index} className={styles.ticketListProduct}>
-                    <span>{item.quantity}x {item.product_name}</span>
-                    <span>${item.subtotal.toFixed(2)}</span>
-                  </div>
-                ))}
-                {ticket.ticket_items.length > 2 && (
-                  <div className={styles.ticketListMore}>
-                    +{ticket.ticket_items.length - 2} más...
-                  </div>
-                )}
-              </div>
+          <div className={styles.ticketsContainer}>
+            <div className={styles.ticketsHeader} onClick={toggleTickets}>
+              <h2>
+                📋 Historial de Ventas
+                <span className={styles.ticketsToggleIcon}>
+                  {showTickets ? '▲' : '▼'}
+                </span>
+              </h2>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-)}
+            
+            <div className={styles.ticketsContent}>
+              {ticketsList.length === 0 ? (
+                <p className={styles.emptyTickets}>No hay tickets registrados</p>
+              ) : (
+                <div className={styles.ticketsListContainer}>
+                  {ticketsList.map(ticket => (
+                    <div 
+                      key={ticket.id} 
+                      className={styles.ticketListItem}
+                      onClick={() => {
+                        setTicket(ticket);
+                        setShowTicketModal(true);
+                      }}
+                    >
+                      <div className={styles.ticketListHeader}>
+                        <span>Ticket #{ticket.id.slice(0, 8)}</span>
+                        <span>{formatDate(ticket.sale_date)}</span>
+                      </div>
+                      <div className={styles.ticketListSeller}>
+                        <span>Vendedor:</span>
+                        <span>{ticket.profiles?.full_name || ticket.profiles?.username || 'Desconocido'}</span>
+                      </div>
+                      <div className={styles.ticketListTotal}>
+                        <span>Total:</span>
+                        <span>${ticket.total_amount.toFixed(2)}</span>
+                      </div>
+                      <div className={styles.ticketListItems}>
+                        {ticket.ticket_items.slice(0, 2).map((item, index) => (
+                          <div key={index} className={styles.ticketListProduct}>
+                            <span>{item.quantity}x {item.product_name}</span>
+                            <span>${item.subtotal.toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {ticket.ticket_items.length > 2 && (
+                          <div className={styles.ticketListMore}>
+                            +{ticket.ticket_items.length - 2} más...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Barra de búsqueda y productos */}
         <div className={styles.searchContainer}>

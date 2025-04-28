@@ -132,8 +132,9 @@ function SignUp() {
     setLoading(true);
     setError(null);
     setSuccess(false);
-
+  
     try {
+      // Paso 1: Registrar el usuario en Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -144,28 +145,31 @@ function SignUp() {
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
-
+  
       if (authError) throw authError;
-
+  
+      // Paso 2: Crear el perfil en la tabla profiles con rol 'cashier'
       if (data?.user?.id) {
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
             id: data.user.id,
+            email: email,  // Asegurar que el email se guarde
             username: email,
             created_at: new Date().toISOString(),
-            role: 'user'
+            role: 'cashier'  // Cambiado de 'user' a 'cashier'
           }, {
             onConflict: 'id'
           });
-
-        if (profileError) console.error('Error creating profile:', profileError);
+  
+        if (profileError) throw profileError;
       }
-
+  
       setSuccess(true);
       alert('Registro exitoso! Por favor revisa tu correo para confirmar.');
     } catch (err) {
       setError(err.message);
+      console.error('Error durante el registro:', err);
     } finally {
       setLoading(false);
     }
