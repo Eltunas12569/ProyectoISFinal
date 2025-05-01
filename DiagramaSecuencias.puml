@@ -1,0 +1,64 @@
+@startuml SecuenciaCorregida
+title Secuencia del Sistema (Roles: Admin y Cashier)
+
+actor Usuario
+participant Login
+participant Supabase
+participant ProtectedRoute
+participant ThemeProvider
+participant AdminDashboard
+participant CashierDashboard
+participant LocalStorage
+
+== Autenticación ==
+Usuario -> Login : Ingresa credenciales
+activate Login
+Login -> ThemeProvider : getTheme()
+ThemeProvider --> Login : tema_actual
+Login -> Supabase : auth.signIn()
+Supabase --> Login : {user, role}
+Login -> LocalStorage : setSession()
+Login --> Usuario : Redirección
+
+alt Rol: admin
+    == Flujo Administrador ==
+    Usuario -> ProtectedRoute : /admin
+    activate ProtectedRoute
+    ProtectedRoute -> Supabase : verifyRole()
+    Supabase --> ProtectedRoute : "admin"
+    ProtectedRoute -> AdminDashboard : accessGranted()
+    
+    activate AdminDashboard
+    AdminDashboard -> Supabase : queryUsers()
+    Supabase --> AdminDashboard : userList
+    AdminDashboard -> ThemeProvider : toggleTheme()
+    AdminDashboard --> Usuario : Panel Admin
+    deactivate AdminDashboard
+    deactivate ProtectedRoute
+
+else Rol: cashier
+    == Flujo Cajero ==
+    Usuario -> ProtectedRoute : /cashier
+    activate ProtectedRoute
+    ProtectedRoute -> Supabase : verifyRole()
+    Supabase --> ProtectedRoute : "cashier"
+    ProtectedRoute -> CashierDashboard : accessGranted()
+    
+    activate CashierDashboard
+    CashierDashboard -> Supabase : queryProducts()
+    Supabase --> CashierDashboard : productList
+    CashierDashboard -> Supabase : createTicket()
+    CashierDashboard --> Usuario : Interfaz Venta
+    deactivate CashierDashboard
+    deactivate ProtectedRoute
+end
+
+== Cierre de Sesión ==
+Usuario -> AdminDashboard/CashierDashboard : logout()
+activate AdminDashboard/CashierDashboard
+AdminDashboard/CashierDashboard -> LocalStorage : clearSession()
+AdminDashboard/CashierDashboard -> Supabase : auth.signOut()
+AdminDashboard/CashierDashboard --> Usuario : Redirect to Login
+deactivate AdminDashboard/CashierDashboard
+
+@enduml

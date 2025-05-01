@@ -1,0 +1,212 @@
+@startuml SistemaCompleto
+
+'########### ESTRUCTURA PRINCIPAL ###########
+package "React Router" {
+  class App {
+    +Router
+    +Routes
+    +Route
+  }
+}
+
+'########### SISTEMA DE AUTENTICACIÓN ###########
+package "Authentication" {
+  class Login {
+    +email
+    +password
+    +handleLogin()
+  }
+  
+  class SignUp {
+    +email
+    +password
+    +handleSignUp()
+  }
+  
+  class Unauthorized {
+    +navigateToHome()
+  }
+  
+  class ProtectedRoute {
+    +checkAuth()
+    +getUserRole()
+  }
+}
+
+'########### GESTIÓN DE TEMA ###########
+package "Theme" {
+  class ThemeProvider {
+    +darkMode
+    +toggleDarkMode()
+  }
+  
+  class ThemeContext {
+    +darkMode
+    +toggleDarkMode
+  }
+  
+  class useTheme {
+    +getContext()
+  }
+}
+
+'########### PANELES ###########
+package "Dashboards" {
+  class AdminDashboard {
+    +users[]
+    +updateUserRole()
+  }
+  
+  class CashierDashboard {
+    +cart[]
+    +processSale()
+  }
+  
+  class PanelVentas {
+    +cart[]
+    +processPurchase()
+  }
+  
+  class Almacen {
+    +products[]
+    +editProduct()
+  }
+  
+  class Historial {
+    +tickets[]
+    +filterTickets()
+  }
+}
+
+'########### MODELOS DE DATOS ###########
+package "Models" {
+  class User {
+    +id
+    +email
+    +role
+  }
+  
+  class Product {
+    +id
+    +name
+    +price
+  }
+  
+  class Ticket {
+    +id
+    +total
+  }
+  
+  class TicketItem {
+    +productId
+    +quantity
+  }
+}
+
+'########### SERVICIOS ###########
+package "Services" {
+  class supabase {
+    +auth.signIn()
+    +auth.signUp()
+    +from().select()
+    +from().upsert()
+  }
+  
+  class useNavigate {
+    +navigate()
+  }
+  
+  class localStorage {
+    +getItem()
+    +setItem()
+  }
+}
+
+'########### RELACIONES COMPLETAS ###########
+
+' Enrutamiento de la App
+App --> Login : "/login"
+App --> SignUp : "/signup"
+App --> Unauthorized : "/unauthorized"
+App --> AdminDashboard : "/admin"
+App --> CashierDashboard : "/cashier"
+App --> PanelVentas : "/panelVentas"
+App --> Almacen : "/almacen"
+App --> Historial : "/historial"
+
+' Flujo de Autenticación
+Login --> supabase : "signInWithPassword"
+SignUp --> supabase : "signUp + setRole"
+ProtectedRoute --> supabase : "getUser + getProfile"
+ProtectedRoute --> Unauthorized : "redirect"
+
+' Sistema de Tema
+ThemeProvider --> ThemeContext : "provee"
+ThemeProvider --> localStorage : "persiste"
+useTheme --> ThemeContext : "consume"
+SignUp --> useTheme : "usa"
+Login --> useTheme : "usa"
+
+' Flujo de Datos
+AdminDashboard --> User : "gestiona"
+CashierDashboard --> Product : "usa"
+PanelVentas --> Product : "usa"
+Almacen --> Product : "gestiona"
+Historial --> Ticket : "visualiza"
+Ticket --> TicketItem : "contiene"
+TicketItem --> Product : "referencia"
+
+' Dependencias
+AdminDashboard --> supabase
+CashierDashboard --> supabase
+PanelVentas --> supabase
+Almacen --> supabase
+Historial --> supabase
+
+' Navegación
+AdminDashboard --> useNavigate
+CashierDashboard --> useNavigate
+PanelVentas --> useNavigate
+Almacen --> useNavigate
+Historial --> useNavigate
+
+'########### ESTILOS Y NOTAS ###########
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #333
+  ArrowColor #007BFF
+}
+
+skinparam package {
+  BackgroundColor<<Authentication>> #FFECB3
+  BackgroundColor<<Theme>> #B3E5FC
+  BackgroundColor<<Dashboards>> #C8E6C9
+  BackgroundColor<<Models>> #D1C4E9
+  BackgroundColor<<Services>> #F8BBD0
+  BorderColor #666
+}
+
+note right of ThemeProvider
+  Gestión de Tema Global:
+  - Alternar modo oscuro/claro
+  - Inyección de variables CSS
+  - Persistencia en localStorage
+  - Proveedor de Context API
+end note
+
+note left of ProtectedRoute
+  Flujo de Autenticación:
+  1. Verificar sesión
+  2. Comprobar rol
+  3. Redirigir si no autorizado
+  4. Proteger todos los paneles
+end note
+
+legend right
+  <<Component>> Componente React
+  <<Service>> Servicio Externo
+  <<Model>> Estructura de Datos
+  <<Provider>> Proveedor de Contexto
+endlegend
+
+@enduml

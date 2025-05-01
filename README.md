@@ -28,10 +28,6 @@ git clone https://github.com/Eltunas12569/ProyectoISFinal.git
 ```
 
 ### 2. Levanta la aplicación
-Una vez clonado el repo, dirigete al directorio `frontend`:
-```bash
-cd frontend/
-````
 
 Una vez dentro del directorio, ejecuta el siguiente comando:
 ```bash
